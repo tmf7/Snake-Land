@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5929789179974978127}
   - component: {fileID: 841195607746142541}
-  - component: {fileID: 4628367072001868397}
+  - component: {fileID: 8970689199280601194}
   m_Layer: 0
   m_Name: WatermelonPickup
   m_TagString: Untagged
@@ -47,8 +47,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _power: 1
---- !u!136 &4628367072001868397
-CapsuleCollider:
+--- !u!135 &8970689199280601194
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -65,11 +65,9 @@ CapsuleCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 2.5047607
-  m_Height: 9.944251
-  m_Direction: 0
-  m_Center: {x: -2.582829, y: 0, z: -0.014100075}
+  serializedVersion: 3
+  m_Radius: 5.111847
+  m_Center: {x: -2.5105257, y: 1.0396013, z: 0}
 --- !u!1001 &5785476279894853997
 PrefabInstance:
   m_ObjectHideFlags: 0

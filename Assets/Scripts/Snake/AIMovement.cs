@@ -21,7 +21,7 @@ namespace Freehill.SnakeLand
 
         public override Vector3 TargetFacing => _trackingVelocity.normalized;
 
-        private Vector3 HeadPosition => _ownerSnake.Head.transform.position;
+        private Vector3 HeadPosition => _ownerSnake.HeadPosition;
 
         public override void Init(SnakesManager snakesManager, Snake ownerSnake)
         {
@@ -32,24 +32,20 @@ namespace Freehill.SnakeLand
         }
 
         // TODO: perform UpdateNeighborhood on a subset of snakes every X frames to amortize costs
-        // TODO: display FPS on screen
-
+        private Collider[] _hitColliders = new Collider[30];
         private void UpdateNeighborhood() 
         {
-            // TODO: move this const to SnakeManager
-            const float neighborhoodDistance_TEST = 10.0f;
-            var hitColliders = Physics.OverlapSphere(HeadPosition, neighborhoodDistance_TEST); // FIXME: use NonAlloc
-            //Debug.Log($"OverlapShere [{name}]: [{results.Length}]");
-
-            /*
             _nearbyPickups.Clear();
             _nearbySnakeParts.Clear();
             _nearbySnakeHeads.Clear();
 
-            foreach (Collider hitCollider in hitColliders) 
+            int hitCount = Physics.OverlapSphereNonAlloc(HeadPosition, _snakesManager.NeighborhoodRadius, _hitColliders);
+
+            for (int i = 0; i < hitCount; ++i) 
             {
-                var hitPickup = hitCollider.GetComponent<Pickup>();
-                var hitSnakePart = hitCollider.GetComponent<SnakePart>();
+                // DEBUG: assumes Pickup and SnakePart are on the same object as their Collider
+                var hitPickup = _hitColliders[i].GetComponent<Pickup>();
+                var hitSnakePart = _hitColliders[i].GetComponent<SnakePart>();
                 if (hitPickup != null)
                 {
                     _nearbyPickups.Add(hitPickup);
@@ -66,27 +62,35 @@ namespace Freehill.SnakeLand
                     }
                 }
             }
-            */
         }
 
+        private void OnDrawGizmos()
+        {
+            if (_ownerSnake != null)
+            {
+                Gizmos.color = new Color(0.5f, 1.0f, 1.0f, 0.5f);
+                Gizmos.DrawSphere(HeadPosition, _snakesManager.NeighborhoodRadius);
+            }
+        }
+
+        // TODO: change to FixedUpdate so it generally happens less often
         private void Update()
         {
             UpdateNeighborhood();
 
+            // NOTE: make Seek stronger than Wander so stuff is actually picked up
+            // NOTE: ensure all pickups can be picked up (ie: not too high off ground)...or give a timeout and exclusion
             Vector3 seek = GetSeekPickupForce();
             Vector3 wander = GetWanderForce();
             Vector3 evade = GetSnakePartEvadeForce();
             Vector3 pursue = GetSnakeHeadPursueForce();
             Vector3 worldPush = GetWorldForce();
 
-            Vector3 acceleration = (worldPush * _snakesManager.BoundaryPushWeight) 
-                                 + (wander * _snakesManager.WanderWeight);
-                //(seek * _snakesManager.PickupSeekWeight)
-                //                 + (wander * _snakesManager.WanderWeight)
+            Vector3 acceleration = (worldPush * _snakesManager.BoundaryPushWeight)
+                                 + (wander * _snakesManager.WanderWeight)
+                                 + (seek * _snakesManager.PickupSeekWeight);
                 //                 + (evade * _snakesManager.SnakePartEvadeWeight)
                 //                 + (pursue * _snakesManager.SnakeHeadPursueWeight)
-                //                 // + (pursue * _snakesManager.SnakeHeadEvadeWeight)
-                //                 + (worldPush * _snakesManager.BoundaryPushWeight);
 
             _trackingVelocity += acceleration * Time.deltaTime;
             //_velocity = _velocity.normalized * Speed;
@@ -128,27 +132,33 @@ namespace Freehill.SnakeLand
             return pursueAcceleration;
         }
 
+
+        private Pickup _pickupTarget = null;
+        // seek toward one in-range pickup at a time
         private Vector3 GetSeekPickupForce()
         {
             Vector3 seekAcceleration = Vector3.zero;
-            Pickup pickupTarget = null;
-            float nearestPickupRange = float.MaxValue;
-
-            for (int i = 0; i < _nearbyPickups.Count; ++i)
+            
+            if (_pickupTarget == null || _pickupTarget.NeedsRespawn || !_nearbyPickups.Contains(_pickupTarget))
             {
-                float pickupRange = (_nearbyPickups[i].transform.position - HeadPosition).sqrMagnitude;
-                if (pickupRange < nearestPickupRange)
+                float nearestPickupRange = float.MaxValue;
+                _pickupTarget = null;
+
+                for (int i = 0; i < _nearbyPickups.Count; ++i)
                 {
-                    nearestPickupRange = pickupRange;
-                    pickupTarget = _nearbyPickups[i];
+                    float pickupRange = (_nearbyPickups[i].transform.position - HeadPosition).sqrMagnitude;
+                    if (pickupRange < nearestPickupRange)
+                    {
+                        nearestPickupRange = pickupRange;
+                        _pickupTarget = _nearbyPickups[i];
+                    }
                 }
             }
 
-            // seek the nearest pickup this frame, but don't commit to it
-            if (pickupTarget != null)
+            if (_pickupTarget != null)
             {
-                Vector3 targetOffset = pickupTarget.transform.position - HeadPosition;
-                seekAcceleration = targetOffset / targetOffset.sqrMagnitude;
+                Vector3 seekFacing = (_pickupTarget.transform.position - HeadPosition).normalized;
+                seekAcceleration = (seekFacing - CurrentFacing) * GroundSpeed;
             }
 
             return seekAcceleration;
@@ -164,17 +174,25 @@ namespace Freehill.SnakeLand
 
         private Vector3 GetSnakePartEvadeForce()
         {
-            // TODO: position the trigger such that its in front of the head, not centered on the head (maybe a capsule)
-            // TODO: project each neighbor part along its travel, then flee that point
-            // ...ignore the MIN_SNAKE_LENGTH elements of self
             Vector3 evadeAcceleration = Vector3.zero;
 
-            for (int i = 0; i < _nearbySnakeParts.Count; ++i) 
+            foreach (SnakePart snakePart in _nearbySnakeParts) 
             {
-                var snakePart = _nearbySnakeParts[i];
+                // TODO: also ignore a part if not moving towards it...or it is not moving towards self
+
+                // DEBUG: allow self to overlap MIN_SNAKE_LENGTH of self
                 if (!_ownerSnake.SnakeMovement.IsSelf(snakePart.transform) 
                     || _ownerSnake.SnakeMovement.IsPartBehind(snakePart.transform, SnakeMovement.MIN_SNAKE_LENGTH))
                 {
+                    // SnakeMovement enforces that all parts (besides the head) follow the path of the part in front of it,
+                    // therefore this logic approximates that the current part will be somewhere between
+                    // its current position and the position of the part ahead of it in the next frame.
+                    Transform partAhead = _ownerSnake.SnakeMovement.GetPartAheadOf(snakePart.transform, 1);
+
+                    // TODO: interpolate (or just use) current to partAhead forward axis
+
+
+
                     Vector3 currentPartOffset = HeadPosition - snakePart.transform.position;
 
                     // TODO: calculate a scaled collision time based on distance/path offet and headings, and speeds

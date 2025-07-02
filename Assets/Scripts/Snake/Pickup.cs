@@ -1,4 +1,5 @@
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Freehill.SnakeLand
 {
@@ -6,7 +7,7 @@ namespace Freehill.SnakeLand
     {
         public enum POWER : int
         { 
-            GROW, // food, love
+            GROW, // apple, love
             BLAST_MAGNET,// watermellon
             FIREBALL, // pineapple
             TEMP_IMMUNITY // coconut
@@ -16,6 +17,10 @@ namespace Freehill.SnakeLand
 
         private SphereCollider _sphereCollider;
         private SpawnPoint _spawnPoint;
+        private Vector3 _initialPosition;
+        private float _currentRotationRadians;
+        private float _rotationSpeedRadians;
+        private float _bounceHeight;
 
         private const float GROUND_OFFSET_SCALER = 1.2f;
 
@@ -36,7 +41,7 @@ namespace Freehill.SnakeLand
         /// Positions and activates this at a random <see cref="SpawnPointManager.GetRandomSpawnPoint"/> or the <paramref name="forcedSpawnPosition"/>
         /// </summary>
         /// <param name="forcedSpawnPosition"> The specific world position this pickup should have. Default is a random spawn point. </param>
-        public void Init(Vector3? forcedSpawnPosition = null)
+        public void Init(float rotationSpeedRadians, float bounceHeight, Vector3? forcedSpawnPosition = null)
         {
             if (forcedSpawnPosition == null)
             {
@@ -51,6 +56,10 @@ namespace Freehill.SnakeLand
             }
 
             gameObject.SetActive(true);
+            _initialPosition = transform.position;
+            _currentRotationRadians = Random.Range(-Mathf.PI, Mathf.PI);
+            _rotationSpeedRadians = rotationSpeedRadians;
+            _bounceHeight = bounceHeight;
         }
 
         public void SetUsed()
@@ -61,6 +70,14 @@ namespace Freehill.SnakeLand
             {
                 SpawnPointManager.FreeSpawnPoint(_spawnPoint);
             }
+        }
+
+        private void Update()
+        {
+            float radiansDelta = _rotationSpeedRadians * Time.deltaTime;
+            _currentRotationRadians += radiansDelta;
+            transform.position = _initialPosition + Vector3.up * _bounceHeight * (1.0f + Mathf.Sin(_currentRotationRadians));
+            transform.Rotate(transform.up, radiansDelta * Mathf.Rad2Deg);
         }
     }
 }

@@ -154,10 +154,12 @@ MonoBehaviour:
   _fireballPrefab: {fileID: 3135081873270503645, guid: aa1f0ff262ab3684bb7f054496773401, type: 3}
   _immunityPrefab: {fileID: 5689865802505984493, guid: 6219e133cca8e004f9e5445d3223cc1d, type: 3}
   _lovePrefab: {fileID: -1001251085178741581, guid: 90b824402d1feb74c930aaf23d0e93f9, type: 3}
-  _maxFood: 500
+  _maxFood: 100
   _maxBlastMagnet: 5
   _maxFireball: 5
   _maxImmunity: 5
+  _rotationSpeedRadians: 1.5707964
+  _bounceHeight: 1.5
 --- !u!4 &110128283
 Transform:
   m_ObjectHideFlags: 0
@@ -513,8 +515,8 @@ MonoBehaviour:
   _playerPrefab: {fileID: 5070963848512910383, guid: 8218b6ab0de8b5243839c8cd63a3f58a, type: 3}
   _aiSnakePrefabs:
   - {fileID: 8757111149997682374, guid: 6d36e9767a2e3284284a0cffa9f642c1, type: 3}
-  _aiSnakeSpawns: 49
-  _pickupSeekWeight: 0
+  _aiSnakeSpawns: 1
+  _pickupSeekWeight: 0.5
   _wanderWeight: 0.61
   _wanderErraticness: 14.3
   _snakePartEvadeWeight: 0
@@ -522,6 +524,7 @@ MonoBehaviour:
   _snakeHeadEvadeWeight: 0
   _boundaryPushWeight: 50
   _boundsProximityRadius: 10
+  _neighborhoodRadius: 10
 --- !u!4 &503912202
 Transform:
   m_ObjectHideFlags: 0

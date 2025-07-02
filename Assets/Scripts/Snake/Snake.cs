@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using UnityEngine;
-using Random = System.Random;
 
 namespace Freehill.SnakeLand
 {
@@ -15,28 +13,7 @@ namespace Freehill.SnakeLand
 
         public SnakeMovement SnakeMovement => _snakeMovement;
         public SnakeHead Head => _snakeMovement.Head;
-
-        private static List<int> _lengths = new List<int>(50);
-        private static int _availableLengthIndex = 0;
-        private static Random rand = new Random();
-        static Snake()
-        {
-            _lengths.Clear();
-            for (int i = 0; i < 47; i++)
-            {
-                _lengths.Add(rand.Next(0, 16));
-            }
-            _lengths.Add(200);
-            _lengths.Add(200);
-            _lengths.Add(200);
-            _availableLengthIndex = 0;
-            Debug.Log("Snake Static CTOR Called");
-        }
-
-        private static int GetLength()
-        {
-            return _lengths[_availableLengthIndex++];
-        }
+        public Vector3 HeadPosition => _snakeMovement.HeadPosition;
 
         public void Init(SnakesManager snakesManager)
         {
@@ -52,7 +29,7 @@ namespace Freehill.SnakeLand
             snakeTail.transform.SetParent(transform);
 
             _snakeMovement.Init(snakesManager, this, snakeHead, snakeTail);
-            _snakeMovement.AddToTargetLength(20);// GetLength());
+            //_snakeMovement.AddToTargetLength(20);
         }
 
         private void Update()

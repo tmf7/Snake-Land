@@ -14,18 +14,20 @@ namespace Freehill.SnakeLand
         [SerializeField][Range(0.0f, 180.0f)] private float _wanderErraticness;
         [SerializeField][Min(0.0f)] private float _snakePartEvadeWeight;
         [SerializeField][Min(0.0f)] private float _snakeHeadPursueWeight;
-        [SerializeField][Min(0.0f)] private float _snakeHeadEvadeWeight;
+        //[SerializeField][Min(0.0f)] private float _snakeHeadEvadeWeight;
         [SerializeField][Min(0.0f)] private float _boundaryPushWeight;
         [SerializeField][Min(0.0f)] private float _boundsProximityRadius;
+        [SerializeField][Min(0.0f)] private float _neighborhoodRadius;
 
         public float PickupSeekWeight => _pickupSeekWeight;
         public float WanderWeight => _wanderWeight;
         public float WanderErraticness => _wanderErraticness;
         public float SnakePartEvadeWeight => _snakePartEvadeWeight;
         public float SnakeHeadPursueWeight => _snakeHeadPursueWeight;
-        public float SnakeHeadEvadeWeight => _snakeHeadEvadeWeight;
+        //public float SnakeHeadEvadeWeight => _snakeHeadEvadeWeight;
         public float BoundaryPushWeight => _boundaryPushWeight;
         public float BoundsProximityRadius => _boundsProximityRadius;
+        public float NeighborhoodRadius => _neighborhoodRadius;
 
         private List<Snake> _spawnedSnakeAIs = new List<Snake>();
 

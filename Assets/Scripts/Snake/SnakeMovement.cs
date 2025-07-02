@@ -53,6 +53,8 @@ namespace Freehill.SnakeLand
         public VelocitySource VelocitySource => _velocitySource;
         public bool IsSelf(Transform part) => _snakeParts.Contains(part);
 
+        public float LinkLength => _currentScale + _linkLengthOffset;
+
         /// <summary> Returns the visible, active, length of the snake. </summary>
         public int ActiveLength => _snakeParts.Count(part => part.gameObject.activeSelf);
 
@@ -71,7 +73,6 @@ namespace Freehill.SnakeLand
         {
             // DEBUG: _snakeParts is arranged as [0][199]...[2][1]
             // so an input of 1 will check against [0] and [199]
-            int activeLength = ActiveLength;
             int partIndex = _snakeParts.IndexOf(part);
 
             if (partIndex == -1 || partNumber == 0)
@@ -79,10 +80,45 @@ namespace Freehill.SnakeLand
                 return false;
             }
 
-            int partVisibleIndex = activeLength - partIndex;
+            int partVisibleIndex = ActiveLength - partIndex;
             return partVisibleIndex > partNumber;
         }
-        public float LinkLength => _currentScale + _linkLengthOffset;
+
+        /// <summary>
+        /// Returns the part closer to the head by <paramref name="offset"/> if positive, 
+        /// and tail if <paramref name="offset"/> is negative.
+        /// Returns the head or tail if offset is longer than available length.
+        /// </summary>
+        public Transform GetPartAheadOf(Transform part, int offset)
+        {
+            if (!IsSelf(part)) 
+            {
+                return null;
+            }
+
+            if (offset == 0)
+            {
+                return part;
+            }
+
+            int activeLength = ActiveLength;
+
+            // DEBUG: account for [0][199][198]...[2][1] visible structure returning the head
+            int partIndex = _snakeParts.IndexOf(part);
+            if (partIndex == 0) 
+            { 
+                partIndex = activeLength;
+            }
+
+            int partVisibleIndex = activeLength - partIndex;
+            int offsetVisibleIndex = Mathf.Clamp(partVisibleIndex - offset, 0, activeLength - 1);
+            if (offsetVisibleIndex == 0)
+            { 
+                offsetVisibleIndex = activeLength;
+            }
+
+            return _snakeParts[activeLength - offsetVisibleIndex];
+        }
 
         public void Init(SnakesManager snakesManager, Snake owner, SnakeHead head, Transform tail)
         {
