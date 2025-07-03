@@ -46,8 +46,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _snakeHeadPrefab: {fileID: 4206234665704372638, guid: 6e0f9aa4f49aa274189c593c96594c07, type: 3}
-  _snakePartPrefab: {fileID: 3415491225268855811, guid: e8e104c584fcd5b47ab4e2f1c83a3f86, type: 3}
-  _snakeTailPrefab: {fileID: 3415491225268855811, guid: e8e104c584fcd5b47ab4e2f1c83a3f86, type: 3}
+  _snakePartPrefab: {fileID: 1685826901001736051, guid: e8e104c584fcd5b47ab4e2f1c83a3f86, type: 3}
+  _snakeTailPrefab: {fileID: 1685826901001736051, guid: e8e104c584fcd5b47ab4e2f1c83a3f86, type: 3}
   _snakeMovement: {fileID: 731829343099379734}
 --- !u!114 &731829343099379734
 MonoBehaviour:

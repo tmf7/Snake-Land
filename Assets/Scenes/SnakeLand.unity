@@ -519,9 +519,8 @@ MonoBehaviour:
   _pickupSeekWeight: 0.5
   _wanderWeight: 0.61
   _wanderErraticness: 14.3
-  _snakePartEvadeWeight: 0
+  _snakePartEvadeWeight: 1
   _snakeHeadPursueWeight: 0
-  _snakeHeadEvadeWeight: 0
   _boundaryPushWeight: 50
   _boundsProximityRadius: 10
   _neighborhoodRadius: 10

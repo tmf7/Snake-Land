@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Freehill.Boids
+namespace Freehill.SnakeLand
 {
     /// <summary>
     /// Axis-aligned global bounding box that avoids the need for a BoxCollider and physics operations
