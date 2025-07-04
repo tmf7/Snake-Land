@@ -107,6 +107,7 @@ namespace Freehill.SnakeLand
         // Rivals => head hits body is complete/instant kill, can intersect own body
         // OG: head his anything, even own body is complete/instant kill
         // NEW: hit own body CUT SELF, hit OTHER body or obstacle DIE SELF ==> aim to cut in front of snake heads
+        //      EXTRA: fireball CUT OTHER, immunity PASS OTHER (and objects)
 
         // combines head cut-off pursuit and head evasion (if can't cut-off)
         private Vector3 GetKillShotForce()
@@ -114,16 +115,80 @@ namespace Freehill.SnakeLand
             Vector3 pursueHeadAcceleration = Vector3.zero;
             Vector3 evadeHeadAcceleration = Vector3.zero;
 
+            // TODO: evade most heads, try to kill one within range (if any)...like pickups
             // DEBUG: _nearbySnakeHeads should never include own head
             for (int i = 0; i < _nearbySnakeHeads.Count; ++i)
             {
+                bool goForKill = false; // false => evade, true => kill
                 SnakeHead otherSnakeHead = _nearbySnakeHeads[i];
-                Vector3 currentHeadsOffset = otherSnakeHead.transform.position - SelfHeadPosition;
-                float relativeHeading = Vector3.Dot(CurrentFacing, otherSnakeHead.Owner.CurrentFacing);// towards > 0, away < 0, parallel == 0
-                float relativePosition = Vector3.Dot(CurrentFacing, currentHeadsOffset); // ahead < 0, behind > 0, beside == 0
+                Vector3 offsetFromOtherToSelf = SelfHeadPosition - otherSnakeHead.transform.position;
 
-                // TODO: use currentHeadsOffset and relative values to determine
-                // whether to go for kill shot (seek tangent position) or evade (flee predicted position)
+                // -1 < together < 0, 0 < apart < 1, parallel == 1, anti-parallel == -1, perpendicular == 0
+                float relativeHeading = Vector3.Dot(CurrentFacing, otherSnakeHead.Owner.CurrentFacing);
+
+                // ahead > 0, behind < 0, beside == 0
+                float relativePosition = Vector3.Dot(otherSnakeHead.Owner.CurrentFacing, offsetFromOtherToSelf);
+
+                // CASES(15):
+                // broad geometric consideration only
+                // not considering snake lengths, GroundSpeed variation, immunity, or AI agression variation
+                // --------------------------
+                // together + ahead ==> kill (consider which is closer to rotating for intercept, and HOW ahead)
+                // together + behind ==> evade
+                // together + beside ==> kill (consider which is closer to rotating for intercept)
+                // --------------------------
+                // apart + ahead ==> kill (consider which is closer to rotating for intercept)
+                // apart + behind ==> evade
+                // apart + beside ==> kill (consider which is closer to rotating for intercept)
+                // --------------------------
+                // parallel + ahead ==> kill (consider HOW ahead)
+                // parallel + behind ==> evade
+                // parallel + beside ==> kill|evade (coin-flip)
+                // --------------------------
+                // anti-parallel + ahead ==> kill (consider HOW ahead)
+                // anti-parallel + behind ==> evade
+                // anti-parallel + beside ==> evade
+                // --------------------------
+                // perpendicular + ahead ==> kill (consider HOW ahead)
+                // perpendicular + behind ==> evade
+                // perpendicular + beside ==> evade
+                // --------------------------
+                if (relativePosition < 0) // self behind other
+                {
+                    // TODO: always evade
+                    // (considering default goForKill == false, this if-statement might get removed)
+                    goForKill = false;
+                }
+                else if (relativePosition > 0) // self ahead of other
+                {
+                    // TODO: regardless of relativeHeading,
+                    // now consider which is specifically closer to rotating for intercept (may be equal), and HOW ahead
+                    // and if feasible then kill, otherwise evade
+                }
+                else // self beside other
+                {
+                    // self headed anti-parallel || perpendicular to other
+                    if (relativeHeading == -1.0f || relativeHeading == 0.0f)
+                    {
+                        // TODO: always evade
+                        // (considering default goForKill == false, this if-statement might get removed/swapped)
+                        goForKill = false;
+                    }
+
+                    // TODO: consider which is specifically closer to rotating for intercept (may be equal), and HOW ahead
+                    // and if feasible then kill, otherwise evade
+                }
+
+                // TODO: kill shot steers to put neck (or specific~ part behind self head)
+                // to intersect path of other head (assuming straight movement)
+                if (goForKill)
+                {
+
+                }
+                else
+                { 
+                
+                }
             }
 
             return (pursueHeadAcceleration * _snakesManager.SnakeHeadPursueWeight) 
