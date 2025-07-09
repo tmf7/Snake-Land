@@ -15,6 +15,8 @@ namespace Freehill.SnakeLand
         public SnakeHead Head => _snakeMovement.Head;
         public Vector3 HeadPosition => _snakeMovement.HeadPosition;
         public Vector3 CurrentFacing => _snakeMovement.VelocitySource.CurrentFacing;
+        public float GroundSpeed => _snakeMovement.VelocitySource.GroundSpeed;
+        public float TurningRadius => _snakeMovement.TurningRadius;
 
         public bool IsPartOfSelf(SnakePart part) => part.Owner == this;
 

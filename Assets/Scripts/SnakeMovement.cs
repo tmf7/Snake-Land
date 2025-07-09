@@ -40,9 +40,6 @@ namespace Freehill.SnakeLand
         private float TargetScale => ActiveLength > MIN_SNAKE_LENGTH ? SCALE_MULTIPLIER * Mathf.Log(ActiveLength * PART_DIVISOR) + 1 : 1.0f;
         private Terrain Terrain => _terrain ??= SpawnPointManager.WorldBounds.Terrain;
 
-        /// <summary> Dynamic turning radius directly proportional to the snake's scale. </summary>
-        private float TurningRadius => 1.0f * _currentScale;
-
         /// <summary>
         /// Returns true if the link just behind the head (ie the "neck") 
         /// has near LinkLength in size (over/under), otherwise returns false.
@@ -51,6 +48,9 @@ namespace Freehill.SnakeLand
 
         public SnakeHead Head => _snakeHead;
         public VelocitySource VelocitySource => _velocitySource;
+
+        /// <summary> Dynamic turning radius directly proportional to the snake's scale. </summary>
+        public float TurningRadius => 1.0f * _currentScale;
 
         public float LinkLength => _currentScale + _linkLengthOffset;
 

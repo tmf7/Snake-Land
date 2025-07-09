@@ -109,86 +109,120 @@ namespace Freehill.SnakeLand
         // NEW: hit own body CUT SELF, hit OTHER body or obstacle DIE SELF ==> aim to cut in front of snake heads
         //      EXTRA: fireball CUT OTHER, immunity PASS OTHER (and objects)
 
-        // combines head cut-off pursuit and head evasion (if can't cut-off)
+        // combines enemy head kill pursuit and enemy head evasion
         private Vector3 GetKillShotForce()
         {
             Vector3 pursueHeadAcceleration = Vector3.zero;
             Vector3 evadeHeadAcceleration = Vector3.zero;
+            SnakeHead killTarget = null;
+            float quickestKillTime = float.MaxValue;
 
-            // TODO: evade most heads, try to kill one within range (if any)...like pickups
+            Vector3 quickestSelfOffsetFromEnemy = Vector3.zero;
+            Vector3 quickestSelfOffsetToCrossing = Vector3.zero;
+
             // DEBUG: _nearbySnakeHeads should never include own head
             for (int i = 0; i < _nearbySnakeHeads.Count; ++i)
             {
-                bool goForKill = false; // false => evade, true => kill
-                SnakeHead otherSnakeHead = _nearbySnakeHeads[i];
-                Vector3 offsetFromOtherToSelf = SelfHeadPosition - otherSnakeHead.transform.position;
+                SnakeHead enemySnakeHead = _nearbySnakeHeads[i];
+                Vector3 selfOffsetFromEnemy = SelfHeadPosition - enemySnakeHead.transform.position;
 
-                // -1 < together < 0, 0 < apart < 1, parallel == 1, anti-parallel == -1, perpendicular == 0
-                float relativeHeading = Vector3.Dot(CurrentFacing, otherSnakeHead.Owner.CurrentFacing);
+                // self according to enemy: ahead > 0, behind < 0, beside == 0
+                float relativeHeadPosition = Vector3.Dot(enemySnakeHead.Owner.CurrentFacing, selfOffsetFromEnemy);
 
-                // ahead > 0, behind < 0, beside == 0
-                float relativePosition = Vector3.Dot(otherSnakeHead.Owner.CurrentFacing, offsetFromOtherToSelf);
+                // TODO: consider snake lengths, GroundSpeed variation, immunity, or AI agression variation
+                // to MOVE self AHEAD of enemy, or CHEAT imminent death
 
-                // CASES(15):
-                // broad geometric consideration only
-                // not considering snake lengths, GroundSpeed variation, immunity, or AI agression variation
-                // --------------------------
-                // together + ahead ==> kill (consider which is closer to rotating for intercept, and HOW ahead)
-                // together + behind ==> evade
-                // together + beside ==> kill (consider which is closer to rotating for intercept)
-                // --------------------------
-                // apart + ahead ==> kill (consider which is closer to rotating for intercept)
-                // apart + behind ==> evade
-                // apart + beside ==> kill (consider which is closer to rotating for intercept)
-                // --------------------------
-                // parallel + ahead ==> kill (consider HOW ahead)
-                // parallel + behind ==> evade
-                // parallel + beside ==> kill|evade (coin-flip)
-                // --------------------------
-                // anti-parallel + ahead ==> kill (consider HOW ahead)
-                // anti-parallel + behind ==> evade
-                // anti-parallel + beside ==> evade
-                // --------------------------
-                // perpendicular + ahead ==> kill (consider HOW ahead)
-                // perpendicular + behind ==> evade
-                // perpendicular + beside ==> evade
-                // --------------------------
-                if (relativePosition < 0) // self behind other
+                // only attempt kill if self is already AHEAD of enemy,
+                // if BEHIND or BESIDE its too risky to cross enemy path
+                // because it relies on enemy turning such that self gets AHEAD.
+                if (relativeHeadPosition > 0.0f)
                 {
-                    // TODO: always evade
-                    // (considering default goForKill == false, this if-statement might get removed)
-                    goForKill = false;
-                }
-                else if (relativePosition > 0) // self ahead of other
-                {
-                    // TODO: regardless of relativeHeading,
-                    // now consider which is specifically closer to rotating for intercept (may be equal), and HOW ahead
-                    // and if feasible then kill, otherwise evade
-                }
-                else // self beside other
-                {
-                    // self headed anti-parallel || perpendicular to other
-                    if (relativeHeading == -1.0f || relativeHeading == 0.0f)
+                    // DEBUG: relativePosition is the distance along enemySnakeHead.Owner.CurrentFacing
+                    // to the point closest to SelfHeadPosition because CurrentFacing is a unit vector
+                    Vector3 selfOffsetToCrossing = relativeHeadPosition * enemySnakeHead.Owner.CurrentFacing - selfOffsetFromEnemy;
+
+                    // avoid square-root
+                    float selfTimeToCrossingPoint = selfOffsetToCrossing.sqrMagnitude / GroundSpeed;
+                    float enemyTimeToCrossingPoint = (relativeHeadPosition * relativeHeadPosition) / enemySnakeHead.Owner.GroundSpeed;
+
+                    // time for self to travel an arc length that rotates
+                    // CurrentFacing to selfOffsetToCrossing direction when SnakeMovement.TurningRadius > 0.0f
+                    float turnArcLength = Mathf.Deg2Rad * Vector3.Angle(CurrentFacing, selfOffsetToCrossing) * _ownerSnake.TurningRadius;
+                    float turningTime = turnArcLength / GroundSpeed;
+
+                    // time lost turning is gained by enemy
+                    // DEBUG: assumes worst-case time loss even if distance to crossing is decreased while turning
+                    selfTimeToCrossingPoint += turningTime;
+                    enemyTimeToCrossingPoint -= turningTime;
+
+                    // TODO: use relativeCrossingPosition to decide if self should orbit a head
+                    // as self has already (most likely) crossed the enemy head's path for a kill
+                    // crossing point according to self: ahead > 0, behind < 0, beside == 0
+                    // TODO: use sqrMagnitude of selfOffsetFromEnemy (or selfOffsetToCrossing, maybe)
+                    // to RANK which of viable kill targets to orbit (ie: decide between orbit pursuit and cross pursuit)
+                    //float relativeCrossingPosition = Vector3.Dot(localOffsetToCrossing, CurrentFacing);
+
+                    if (selfTimeToCrossingPoint < enemyTimeToCrossingPoint
+                        && selfTimeToCrossingPoint < quickestKillTime)
                     {
-                        // TODO: always evade
-                        // (considering default goForKill == false, this if-statement might get removed/swapped)
-                        goForKill = false;
+                        killTarget = enemySnakeHead;
+                        quickestKillTime = selfTimeToCrossingPoint;
+                        quickestSelfOffsetFromEnemy = selfOffsetFromEnemy;
+                        quickestSelfOffsetToCrossing = selfOffsetToCrossing;
                     }
-
-                    // TODO: consider which is specifically closer to rotating for intercept (may be equal), and HOW ahead
-                    // and if feasible then kill, otherwise evade
+                    else 
+                    {
+                        // evade because self can't cross the enemy path
+                        // faster than the enemy can pass self
+                        evadeHeadAcceleration += Vector3.zero;
+                        continue;
+                    }
                 }
-
-                // TODO: kill shot steers to put neck (or specific~ part behind self head)
-                // to intersect path of other head (assuming straight movement)
-                if (goForKill)
+                else 
                 {
+                    // evade because self can't cross the enemy path
+                    // when running beside or behind the enemy
+                    evadeHeadAcceleration += Vector3.zero;
+                    continue;
+                }
+            }
 
+            if (killTarget != null) 
+            {
+                // TODO: fasterCutoffAngleRads * SOME_POSITIVE_REDUCING_SCALE_VALUE
+                // because without reducing fasterCutoffAngleRads snakes bump heads
+                // SOME_POSITIVE_REDUCING_SCALE_VALUE should consider:
+                // [] additional self TuringTime (based on TurningRadius and GroundSpeed, as above)
+                // [] the varying GroundSpeeds of both snakes
+
+                // FIXME: this if-else assumes there will be a closest killTarget that
+                // has self on its path....which actually tracks because time to intercept is being minimized
+                // and thats zero ON the enemy CurrentHeading line.
+                // SOLUTION: if EVADING enemies that self is ON the line of, then
+                // what's the OFF-line threshold to KILL enemies? and does CurrentFacing factor in?
+                // ....its safer to turn away then try to juke and cross paths
+
+                float enemyPursuitAngleRads = Vector3.Angle(killTarget.Owner.CurrentFacing, quickestSelfOffsetFromEnemy) * Mathf.Deg2Rad;
+                if (!Mathf.Approximately(enemyPursuitAngleRads, 0.0f))
+                {
+                    float fasterCutoffAngleRads = (0.5f * Mathf.PI) - (2.0f * enemyPursuitAngleRads);
+                    float maxMagnitudeChange = quickestSelfOffsetFromEnemy.magnitude - quickestSelfOffsetToCrossing.magnitude;
+                    quickestSelfOffsetToCrossing = Vector3.RotateTowards(quickestSelfOffsetToCrossing, 
+                                                                        -quickestSelfOffsetFromEnemy, 
+                                                                         fasterCutoffAngleRads, 
+                                                                         maxMagnitudeChange);
+
+                    // TODO: SEEK steer towards the best kill crossing point (using quickestSelfOffsetToCrossing)
+                    // TODO(instead): don't seek a POINT, seek an ALIGNMENT (CurrentFacing) perpendicular to enemy.CurrentFacing
+                    pursueHeadAcceleration = Vector3.zero;
                 }
                 else
-                { 
-                
+                {
+                    // TODO: evade to move straight AWAY from predicted enemy pos because self is directly in front of enemy
+                    // regardless of facing its safer to turn away then try to juke and cross paths
+                    evadeHeadAcceleration += Vector3.zero;
                 }
+
             }
 
             return (pursueHeadAcceleration * _snakesManager.SnakeHeadPursueWeight) 
